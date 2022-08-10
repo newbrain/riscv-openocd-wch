@@ -1,8 +1,8 @@
 This is openocd.info, produced by makeinfo version 6.7 from
 openocd.texi.
 
-This User's Guide documents release 0.11.0+dev, dated 10 January 2022,
-of the Open On-Chip Debugger (OpenOCD).
+This User's Guide documents release 0.11.0+dev, dated 30 July 2022, of
+the Open On-Chip Debugger (OpenOCD).
 
    * Copyright (C) 2008 The OpenOCD Project
    * Copyright (C) 2007-2008 Spencer Oliver <spen@spen-soft.co.uk>

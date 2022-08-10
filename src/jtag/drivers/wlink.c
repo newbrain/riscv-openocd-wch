@@ -395,7 +395,7 @@ RETRY:
 	return false;
 }
 
-int  wlink_reset()
+int  wlink_reset(void)
 {
 	unsigned char txbuf[4];
 	unsigned char rxbuf[4];

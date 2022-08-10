@@ -21,11 +21,14 @@
 #include "imp.h"
 #include <helper/binarybuffer.h>
 #include <target/algorithm.h>
-extern int wlink_erase(void);
+
 extern unsigned char riscvchip;
-extern int wlink_reset();
+
+extern int wlink_erase(void);
+extern int wlink_reset(void);
 extern int wlink_write(const uint8_t *buffer, uint32_t offset, uint32_t count);
 extern int noloadflag;
+
 struct ch32vx_options
 {
 	uint8_t rdp;
@@ -49,6 +52,14 @@ struct ch32vx_flash_bank
 	uint32_t user_bank_size;
 };
 
+static int ch32vx_erase(struct flash_bank *bank, unsigned int first, unsigned int last);
+static int ch32vx_write(struct flash_bank *bank, const uint8_t *buffer,
+						uint32_t offset, uint32_t count);
+static int ch32vx_get_device_id(struct flash_bank *bank, uint32_t *device_id);
+static int ch32vx_get_flash_size(struct flash_bank *bank, uint16_t *flash_size_in_kb);
+static int ch32vx_probe(struct flash_bank *bank);
+static int ch32vx_auto_probe(struct flash_bank *bank);
+
 FLASH_BANK_COMMAND_HANDLER(ch32vx_flash_bank_command)
 {
 	struct ch32vx_flash_bank *ch32vx_info;
@@ -67,7 +78,7 @@ FLASH_BANK_COMMAND_HANDLER(ch32vx_flash_bank_command)
 	return ERROR_OK;
 }
 
-static int ch32vx_erase(struct flash_bank *bank, int first, int last)
+static int ch32vx_erase(struct flash_bank *bank, unsigned int first, unsigned int last)
 {	
 	 
 	if(noloadflag)
@@ -119,7 +130,6 @@ static int ch32vx_probe(struct flash_bank *bank)
 	uint32_t device_id;
 	int page_size;
 	uint32_t base_address = 0x00000000;
-	uint32_t rid = 0;
 	ch32vx_info->probed = 0;
 	/* read ch32 device id register */
 	int retval = ch32vx_get_device_id(bank, &device_id);
