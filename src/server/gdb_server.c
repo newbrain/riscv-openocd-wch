@@ -65,6 +65,8 @@ extern int wlink_quitreset(void);
 extern unsigned char riscvchip;
 extern uint8_t armchip;
 extern void wlink_armquitreset(void);
+/* number of gdb connections, mainly to suppress gdb related debugging spam
+ * in helper/log.c when no gdb connections are actually active */
 int gdb_actual_connections;
 struct target_desc_format {
 	char *tdesc;
@@ -121,10 +123,6 @@ static void gdb_log_callback(void *priv, const char *file, unsigned line,
 		const char *function, const char *string);
 
 static void gdb_sig_halted(struct connection *connection);
-
-/* number of gdb connections, mainly to suppress gdb related debugging spam
- * in helper/log.c when no gdb connections are actually active */
-int gdb_actual_connections;
 
 /* set if we are sending a memory map to gdb
  * via qXfer:memory-map:read packet */

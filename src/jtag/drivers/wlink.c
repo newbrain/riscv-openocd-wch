@@ -338,17 +338,17 @@ uint8_t flash_op307[ ] ={
 
 void readmcause();
 unsigned char DMI_OP(	  
-	unsigned long iIndex, 
-	unsigned char iAddr,
-	unsigned long iData,
-	unsigned char iOP,
-	unsigned char *oAddr,
-	unsigned long *oData,
-	unsigned char *oOP)
+	uint32_t 	iIndex, 
+	uint8_t 	iAddr,
+	uint32_t 	iData,
+	uint8_t 	iOP,
+	uint8_t 	*oAddr,
+	uint32_t 	*oData,
+	uint8_t 	*oOP)
 {
 	unsigned char Txbuf[9];
 	unsigned char Rxbuf[9];
-	unsigned long len;
+	uint32_t len;
 	unsigned char *pData;
 	unsigned char retrytime;
 	Txbuf[0] = 0x81;
