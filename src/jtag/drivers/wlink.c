@@ -26,79 +26,80 @@
 #endif
 
 #ifdef _WIN32
-#include <windows.h>
-#include <stdbool.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <string.h>
-#include <stdint.h>
-#include "hidapi.h"
-typedef int(__stdcall *pCH375OpenDevice)(unsigned long iIndex);
-typedef void(__stdcall *pCH375CloseDevice)(unsigned long iIndex);
-typedef unsigned long(__stdcall *pCH375SetTimeout)(unsigned long iIndex,
-												   unsigned long iWriteTimeout,
-												   unsigned long iReadTimeout);
-typedef unsigned long(__stdcall *pCH375ReadEndP)(unsigned long iIndex,
-												 unsigned long iPipeNum,
-												 void *iBuffer,
-												 unsigned long *ioLength);
-typedef unsigned long(__stdcall *pCH375WriteEndP)(unsigned long iIndex,
-												  unsigned long iPipeNum,
-												  void *iBuffer,
-												  unsigned long *ioLength);
-HMODULE hModule = 0;
-BOOL gOpen = FALSE;
-ULONG gIndex = 0;
-pCH375OpenDevice pOpenDev;
-pCH375CloseDevice pCloseDev;
-pCH375SetTimeout pSetTimeout;
-pCH375ReadEndP pReadData;
-pCH375WriteEndP pWriteData;
+	#include <windows.h>
+	#include <stdbool.h>
+	#include <stdio.h>
+	#include <stdlib.h>
+	#include <unistd.h>
+	#include <string.h>
+	#include <stdint.h>
+	#include "hidapi.h"
+	typedef int(__stdcall *pCH375OpenDevice)(unsigned long iIndex);
+	typedef void(__stdcall *pCH375CloseDevice)(unsigned long iIndex);
+	typedef unsigned long(__stdcall *pCH375SetTimeout)(unsigned long iIndex,
+													unsigned long iWriteTimeout,
+													unsigned long iReadTimeout);
+	typedef unsigned long(__stdcall *pCH375ReadEndP)(unsigned long iIndex,
+													unsigned long iPipeNum,
+													void *iBuffer,
+													unsigned long *ioLength);
+	typedef unsigned long(__stdcall *pCH375WriteEndP)(unsigned long iIndex,
+													unsigned long iPipeNum,
+													void *iBuffer,
+													unsigned long *ioLength);
+	HMODULE hModule = 0;
+	BOOL gOpen = FALSE;
+	ULONG gIndex = 0;
+	pCH375OpenDevice pOpenDev;
+	pCH375CloseDevice pCloseDev;
+	pCH375SetTimeout pSetTimeout;
+	pCH375ReadEndP pReadData;
+	pCH375WriteEndP pWriteData;
 #else
-#include "libusb_helper.h"
-#include <stdbool.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <fcntl.h>
-#include <string.h>
-#include <sys/ioctl.h>
-#include <stdint.h>
-#include <hidapi.h>
-int gIndex = 0;
-static const uint16_t wlink_vids[] = {0x1a86, 0};
-static const uint16_t wlink_pids[] = {0x8010, 0};
-struct jtag_libusb_device_handle *wfd = NULL;
-int pWriteData(int dev, int endpoint, unsigned char *buf, unsigned long *length)
-{
-	int ret,pr;
-	length = (int *)length;
-	ret =jtag_libusb_bulk_write(wfd, endpoint, buf, *length, 3000,&pr);
-	if(ret==ERROR_OK)
-		 return 1;
-	else
-		 return ret;
-}
-int pReadData(int dev, int endpoint, unsigned char *buf, unsigned long *length)
-{
-	int ret,pr;
-	length = (int *)length;
-	if (endpoint == 1)
+	#include "libusb_helper.h"
+	#include <stdbool.h>
+	#include <stdio.h>
+	#include <stdlib.h>
+	#include <unistd.h>
+	#include <sys/stat.h>
+	#include <sys/types.h>
+	#include <fcntl.h>
+	#include <string.h>
+	#include <sys/ioctl.h>
+	#include <stdint.h>
+	#include <hidapi.h>
+
+	uint32_t gIndex = 0;
+	static const uint16_t wlink_vids[] = {0x1a86, 0};
+	static const uint16_t wlink_pids[] = {0x8010, 0};
+	struct libusb_device_handle *wfd = NULL;
+
+	int pWriteData(int dev, int endpoint, unsigned char *buf, uint32_t *length)
 	{
-		ret=jtag_libusb_bulk_read(wfd, 0x81, buf, *length, 3000,&pr);
+		int ret,pr;
+		ret =jtag_libusb_bulk_write(wfd, endpoint, (char*)buf, *length, 3000,&pr);
+		if(ret==ERROR_OK)
+			return 1;
+		else
+			return ret;
 	}
-	else
+
+	int pReadData(int dev, int endpoint, unsigned char *buf, uint32_t *length)
 	{
-		ret=jtag_libusb_bulk_read(wfd, 0x82, buf, *length, 3000,&pr);
+		int ret,pr;
+		if (endpoint == 1)
+		{
+			ret=jtag_libusb_bulk_read(wfd, 0x81, (char*)buf, *length, 3000,&pr);
+		}
+		else
+		{
+			ret=jtag_libusb_bulk_read(wfd, 0x82, (char*)buf, *length, 3000,&pr);
+		}
+		if(ret==ERROR_OK)
+			return 1;
+		else
+			return ret;
 	}
-	if(ret==ERROR_OK)
-		 return 1;
-	else
-		 return ret;
-}
 #endif
 
 unsigned char riscvchip;
@@ -107,6 +108,9 @@ unsigned long pagesize;
 unsigned long ramaddr;
 bool wchwlink;
 int noloadflag=0; 
+
+static void wlink_ramcodewrite(uint8_t *buffer, int size);
+
 uint8_t flash_op103[ ] ={
     0x93, 0x77, 0x15, 0x00, 0x41, 0x11, 0x99, 0xCF, 0xB7, 0x06, 0x67, 0x45, 0xB7, 0x27, 0x02, 0x40, 
     0x93, 0x86, 0x36, 0x12, 0x37, 0x97, 0xEF, 0xCD, 0xD4, 0xC3, 0x13, 0x07, 0xB7, 0x9A, 0xD8, 0xC3, 
@@ -336,7 +340,7 @@ uint8_t flash_op307[ ] ={
     0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,   
 };
 
-void readmcause();
+void readmcause(void);
 unsigned char DMI_OP(	  
 	uint32_t 	iIndex, 
 	uint8_t 	iAddr,
@@ -350,7 +354,6 @@ unsigned char DMI_OP(
 	unsigned char Rxbuf[9];
 	uint32_t len;
 	unsigned char *pData;
-	unsigned char retrytime;
 	Txbuf[0] = 0x81;
 	Txbuf[1] = 0x08;
 	Txbuf[2] = 0x06;
@@ -360,8 +363,7 @@ unsigned char DMI_OP(
 	Txbuf[6] = (unsigned char)(iData >> 8);
 	Txbuf[7] = (unsigned char)(iData);
 	Txbuf[8] = iOP;
-	retrytime = 0;
-RETRY:
+// RETRY:
 	len = 9;
 	if (pWriteData(gIndex, 1, Txbuf, &len))
 	{
@@ -382,8 +384,6 @@ RETRY:
 			}
 			*oOP = Rxbuf[8];
 		
-			retrytime++;
-
 			if (Rxbuf[8] == 2 && Rxbuf[6] == 3)
 			{
 				readmcause();
@@ -399,13 +399,13 @@ int  wlink_reset(void)
 {
 	unsigned char txbuf[4];
 	unsigned char rxbuf[4];
-	unsigned long len = 4;
+	uint32_t len = 4;
 	txbuf[0] = 0x81;
 	txbuf[1] = 0x0b;
 	txbuf[2] = 0x01;
 	txbuf[3] = 0x02;
 	unsigned char oAddr;
-	unsigned long oData;
+	uint32_t oData;
 	unsigned char oOP;
 	unsigned char iAddr;
 	DMI_OP(0, 0x10, 0x80000001, 2, &oAddr, &oData, &oOP);
@@ -439,7 +439,7 @@ int wlink_quitreset(void)
 {
 	unsigned char txbuf[4];
 	unsigned char rxbuf[4];
-	unsigned long len = 4;
+	uint32_t len = 4;
 	txbuf[0] = 0x81;
 	txbuf[1] = 0x0b;
 	txbuf[2] = 0x01;
@@ -454,8 +454,8 @@ int wlink_ready_write(uint32_t address)
 {
 	unsigned char txbuf[24];
 	unsigned char rxbuf[24];
-	unsigned long len = 4;
-	unsigned long chipiaddr1 = chipiaddr + address;
+	uint32_t len = 4;
+	uint32_t chipiaddr1 = chipiaddr + address;
 	txbuf[0] = 0x81;
 	txbuf[1] = 0x02;
 	txbuf[2] = 0x01;
@@ -517,9 +517,9 @@ int wlink_ready_write(uint32_t address)
 	return rxbuf[3];
 }
 
-void wlink_ramcodewrite(uint8_t *buffer, int size)
+static void wlink_ramcodewrite(uint8_t *buffer, int size)
 {
-	unsigned long len = 64;
+	uint32_t len = 64;
 	int i = 0;
 	while (size >= 64)
 	{
@@ -537,7 +537,7 @@ void wlink_endprogram(void)
 {
 	unsigned char txbuf[4];
 	unsigned char rxbuf[4];
-	unsigned long len = 4;
+	uint32_t len = 4;
 	txbuf[0] = 0x81;
 	txbuf[1] = 0x02;
 	txbuf[2] = 0x01;
@@ -549,7 +549,7 @@ void wlink_endprogram(void)
 
 int wlink_fastprogram(uint8_t *buffer)
 {
-	unsigned long len = 64;
+	uint32_t len = 64;
 	unsigned char rxbuf[4];
 	for (int i = 0; i < 64; i++)
 	{
@@ -569,15 +569,13 @@ int wlink_fastprogram(uint8_t *buffer)
 
 
 
-unsigned char WriteNonFullPage(unsigned long iaddr,
+unsigned char WriteNonFullPage(uint32_t iaddr,
 							   unsigned char *ibuff,
-							   unsigned long ilen)
+							   uint32_t ilen)
 {
 	unsigned char Txbuf[pagesize];
 	unsigned char Rxbuf[pagesize];
-	unsigned long len;
-	unsigned char *pData;
-	unsigned char retrytime;
+	uint32_t len;
 	unsigned char i = 0;
 	Txbuf[0] = 0x81;
 	Txbuf[1] = 0x0A;
@@ -588,7 +586,6 @@ unsigned char WriteNonFullPage(unsigned long iaddr,
 	Txbuf[5] = (unsigned char)(iaddr >> 8);
 	Txbuf[6] = (unsigned char)(iaddr);
 	Txbuf[7] = (unsigned char)ilen;
-	retrytime = 0;
 	len = 8;
 	if ((riscvchip == 0x03) || (riscvchip == 0x02))
 	{
@@ -668,12 +665,14 @@ unsigned char WriteNonFullPage(unsigned long iaddr,
 		}
 		return 0;
 	}
+	return 0;
 }
-int wlink_verify(unsigned long length, unsigned char *buffer)
+
+int wlink_verify(uint32_t length, unsigned char *buffer)
 {
 	unsigned char txbuf[12];
 	unsigned char rxbuf[6];
-	unsigned long len = 4;
+	uint32_t len = 4;
 
 	txbuf[0] = 0x81;
 	txbuf[1] = 0x0f;
@@ -1019,7 +1018,7 @@ int wlink_erase(void)
 	int ret;
 	unsigned char txbuf[4];
 	unsigned char rxbuf[4];
-	unsigned long len = 4;
+	uint32_t len = 4;
 	txbuf[0] = 0x81;
 	txbuf[1] = 0x02;
 	txbuf[2] = 0x01;
@@ -1032,7 +1031,7 @@ int wlink_erase(void)
 void readmcause()
 {
 	unsigned char oAddr;
-	unsigned long oData;
+	uint32_t oData;
 	unsigned char oOP;
 	DMI_OP(0, 0x16, 0x00000700, 2, &oAddr, &oData, &oOP);
 	DMI_OP(0, 0x17, 0x220342, 2, &oAddr, &oData, &oOP);
@@ -1055,13 +1054,12 @@ int wlink_init(void)
 {	
 	unsigned char txbuf[4];
 	unsigned char rxbuf[6];
-	uint64_t old_dpc_value, new_dpc_value, t6_new, t6_old;
-	uint32_t dmcontrol;
 	txbuf[0] = 0x81;
 	txbuf[1] = 0x0d;
 	txbuf[2] = 0x01;
 	txbuf[3] = 0x01;
-	unsigned long len = 4;
+	uint32_t len = 4;
+	int ret = ERROR_OK;
 
 #ifdef _WIN32
 	OSVERSIONINFO version;
@@ -1101,7 +1099,7 @@ int wlink_init(void)
 			pSetTimeout(gIndex, 5000, 5000);
 		}
 	}
-#else if
+#else
 
 	if (jtag_libusb_open(wlink_vids, wlink_pids, &wfd, NULL) != ERROR_OK)
 	{
@@ -1146,40 +1144,38 @@ int wlink_init(void)
 			pWriteData(0, 1, txbuf, &len);
 			len = 4;
 			if(pReadData(0, 1, rxbuf, &len)){
-					uint64_t old_dpc_value, new_dpc_value, t6_new, t6_old;
-					uint32_t dmcontrol;
-					uint32_t addr = 4;
-					unsigned char oAddr;
-					unsigned long oData;
-					unsigned char oOP;
-					unsigned char iAddr;
-					unsigned char Txbuf[52] = {0x13, 0x00, 0x00, 0x00, 0x13, 0x00, 0x00, 0x00, 0x13, 0x00, 0x00, 0x00,
-											   0x13, 0x00, 0x00, 0x00, 0x13, 0x00, 0x00, 0x00, 0x13, 0x00, 0x00, 0x00, 0x13, 0x00, 0x00, 0x00, 0x13, 0x00, 0x00, 0x00, 0x13, 0x00, 0x00, 0x00,
-											   0x13, 0x00, 0x00, 0x00, 0x13, 0x00, 0x00, 0x00, 0x13, 0x00, 0x00, 0x00,
-											   0x73, 0x00, 0x10, 0x00};				
-					DMI_OP(0, 0x20, 0x0002a283, 2, &oAddr, &oData, &oOP);
-					DMI_OP(0, 0x21, 0x00100073, 2, &oAddr, &oData, &oOP);
-					DMI_OP(0, 0x04, 0, 2, &oAddr, &oData, &oOP);
-					DMI_OP(0, 0x17, 0x00271005, 2, &oAddr, &oData, &oOP);
-					DMI_OP(0, 0x17, 0x00221005, 2, &oAddr, &oData, &oOP);
-					DMI_OP(0, 0x04, iAddr, 1, &oAddr, &oData, &oOP);
-					WriteNonFullPage(addr, Txbuf, sizeof(Txbuf));					
-					int ret = DMI_OP(0, 0x04, 0x00000020, 2, &oAddr, &oData, &oOP);
-					usleep(1000);
-					DMI_OP(0, 0x17, 0x0023101F, 2, &oAddr, &oData, &oOP);
-					usleep(1000);
-					DMI_OP(0, 0x16, iAddr, 1, &oAddr, &oData, &oOP);
-					usleep(1000);
-					DMI_OP(0, 0x20, 0x000f8067, 2, &oAddr, &oData, &oOP);
-					usleep(1000);
-					DMI_OP(0, 0x21, 0x00100073, 2, &oAddr, &oData, &oOP);
-					usleep(1000);
-					DMI_OP(0, 0x17, 0x00241000, 2, &oAddr, &oData, &oOP);
-					usleep(1000);
-					DMI_OP(0, 0x16, iAddr, 1, &oAddr, &oData, &oOP);
-					usleep(1000);
-					wlink_reset();
-				}
+				uint32_t addr = 4;
+				unsigned char oAddr = 0;
+				uint32_t oData = 0;
+				unsigned char oOP = 0;
+				unsigned char iAddr = 0;
+				unsigned char Txbuf[52] = {0x13, 0x00, 0x00, 0x00, 0x13, 0x00, 0x00, 0x00, 0x13, 0x00, 0x00, 0x00,
+											0x13, 0x00, 0x00, 0x00, 0x13, 0x00, 0x00, 0x00, 0x13, 0x00, 0x00, 0x00, 0x13, 0x00, 0x00, 0x00, 0x13, 0x00, 0x00, 0x00, 0x13, 0x00, 0x00, 0x00,
+											0x13, 0x00, 0x00, 0x00, 0x13, 0x00, 0x00, 0x00, 0x13, 0x00, 0x00, 0x00,
+											0x73, 0x00, 0x10, 0x00};				
+				DMI_OP(0, 0x20, 0x0002a283, 2, &oAddr, &oData, &oOP);
+				DMI_OP(0, 0x21, 0x00100073, 2, &oAddr, &oData, &oOP);
+				DMI_OP(0, 0x04, 0, 2, &oAddr, &oData, &oOP);
+				DMI_OP(0, 0x17, 0x00271005, 2, &oAddr, &oData, &oOP);
+				DMI_OP(0, 0x17, 0x00221005, 2, &oAddr, &oData, &oOP);
+				DMI_OP(0, 0x04, iAddr, 1, &oAddr, &oData, &oOP);
+				WriteNonFullPage(addr, Txbuf, sizeof(Txbuf));					
+				ret = DMI_OP(0, 0x04, 0x00000020, 2, &oAddr, &oData, &oOP);
+				usleep(1000);
+				DMI_OP(0, 0x17, 0x0023101F, 2, &oAddr, &oData, &oOP);
+				usleep(1000);
+				DMI_OP(0, 0x16, iAddr, 1, &oAddr, &oData, &oOP);
+				usleep(1000);
+				DMI_OP(0, 0x20, 0x000f8067, 2, &oAddr, &oData, &oOP);
+				usleep(1000);
+				DMI_OP(0, 0x21, 0x00100073, 2, &oAddr, &oData, &oOP);
+				usleep(1000);
+				DMI_OP(0, 0x17, 0x00241000, 2, &oAddr, &oData, &oOP);
+				usleep(1000);
+				DMI_OP(0, 0x16, iAddr, 1, &oAddr, &oData, &oOP);
+				usleep(1000);
+				wlink_reset();
+			}
 			break;
 		}
 		case 2:
@@ -1253,24 +1249,22 @@ int wlink_init(void)
 			LOG_ERROR(" communication fail,please contact [support@mounriver.com]");
 			return ERROR_FAIL;
 		}
-#ifdef _WIN32
-		gOpen = TRUE;
-#endif
+		#ifdef _WIN32
+			gOpen = TRUE;
+		#endif
 	}
 	else
 	{
 		return ERROR_FAIL;
 	}
-	LOG_INFO("wlink_init ok");
-	return ERROR_OK;
-#ifdef _WIN32
-
-#else
-error_wlink:
-	if(wfd)
-		jtag_libusb_close(wfd);
-	return ERROR_FAIL;
-#endif
+	LOG_INFO(ret==ERROR_OK?"wlink_init ok":"wlink_init fail");
+	return ret;
+	#if !defined(_WIN32)
+	error_wlink:
+		if(wfd)
+			jtag_libusb_close(wfd);
+		return ERROR_FAIL;
+	#endif
 }
 
 int wlink_quit(void)
@@ -1286,7 +1280,7 @@ int wlink_quit(void)
 		FreeLibrary(hModule);
 		hModule = 0;
 	}
-#else if
+#else
 	jtag_libusb_close(wfd);
 #endif
 	return ERROR_OK;
@@ -1298,7 +1292,7 @@ void wlink_disabledebug(void)
 	{
 		unsigned char txbuf[4];
 		unsigned char rxbuf[4];
-		unsigned long len = 4;
+		uint32_t len = 4;
 		txbuf[0] = 0x81;
 		txbuf[1] = 0x0e;
 		txbuf[2] = 0x01;
@@ -1318,7 +1312,7 @@ int wlink_write(const uint8_t *buffer, uint32_t offset, uint32_t count)
 	wlink_ready_write(offset);
 	if (binlength <= 4096)
 	{
-		for (int i = 0; i < count; i++)
+		for (uint32_t i = 0; i < count; i++)
 		{
 			buf_bin[i] = *(buffer + i);
 		}
@@ -1469,7 +1463,9 @@ int wlink_armcheckprotect(void)
 		}
 		return ERROR_OK;
 	}
+	return ERROR_OK;
 }
+
 int wlink_armerase(void)
 {
 	uint8_t buffer_code[65] = {0x00, 0x81, 0x02, 0x01, 0x05};
@@ -1479,15 +1475,14 @@ int wlink_armerase(void)
 	if (armchip == 1)
 	{
 		comprogram = program_code1;
-		comflash = flash_code1;
+		comflash = (uint32_t*)flash_code1;
 	}
 
 	if (armchip == 2)
 	{
 		comprogram = program_code2;
-		comflash = flash_code2;
+		comflash = (uint32_t*)flash_code2;
 	}
-	uint8_t i = 0;
 	uint8_t *flashcode = (uint8_t *)comflash;
 
 	int h = *(comprogram + 10);
@@ -1505,14 +1500,14 @@ int wlink_armerase(void)
 	{
 		for (int j = 1; j < 65; j++)
 		{
-			txbuf[j] = *((uint8_t *)comflash + (j - 1) + loopcount);
+			txbuf[j] = *(flashcode + (j - 1) + loopcount);
 		}
 		hid_write(wlink_dev_handle, txbuf, 65);
 		h -= 64;
 		loopcount += 64;
 	}
 	uint8_t buffer_erase[65] = {0x00, 0x81, 0x02, 0x01, 0x01};
-	int retval = hid_write(wlink_dev_handle, buffer_erase, 65);
+	/* int retval = */ hid_write(wlink_dev_handle, buffer_erase, 65);
 	hid_read(wlink_dev_handle, buffer_rcode, 65);
 	if ((*(buffer_rcode + 0) == 0x82) && (*(buffer_rcode + 1) == 0x02) && (*(buffer_rcode + 2) == 0x01) && (*(buffer_rcode + 3) == 0x01))
 	{
@@ -1521,9 +1516,10 @@ int wlink_armerase(void)
 	LOG_ERROR(" ERASE FAILED");
 	return ERROR_FAIL;
 }
+
 int wlink_armwrite(const uint8_t *buffer, uint32_t offset, uint32_t count)
 {
-	uint8_t *addr = &offset;
+	uint8_t *addr = (uint8_t*)&offset;
 	uint8_t flash_write[65] = {0x00, 0x81, 0x02, 0x01, 0x02};
 	uint8_t buffer_rcode[65];
 	uint8_t *buffer1;
@@ -1546,7 +1542,7 @@ int wlink_armwrite(const uint8_t *buffer, uint32_t offset, uint32_t count)
 	hid_write(wlink_dev_handle, countsize, 65);
 	hid_read_timeout(wlink_dev_handle, buffer_rcode, 65, beytime); 
 	hid_write(wlink_dev_handle, flash_write, 65); 
-	int retval = hid_read_timeout(wlink_dev_handle, buffer_rcode, 65, beytime);
+	/* int retval = */ hid_read_timeout(wlink_dev_handle, buffer_rcode, 65, beytime);
 	while (count > 0)
 	{
 		for (int j = 1; j < 65; j++)
