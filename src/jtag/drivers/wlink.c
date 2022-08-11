@@ -25,6 +25,8 @@
 #include <arpa/inet.h>
 #endif
 
+#define LIBUSB_RW_TIMEOUT	(3000)
+
 #ifdef _WIN32
 	#include <windows.h>
 	#include <stdbool.h>
@@ -76,29 +78,21 @@
 
 	int pWriteData(int dev, int endpoint, unsigned char *buf, uint32_t *length)
 	{
-		int ret,pr;
-		ret =jtag_libusb_bulk_write(wfd, endpoint, (char*)buf, *length, 3000,&pr);
-		if(ret==ERROR_OK)
-			return 1;
-		else
-			return ret;
+		int ret;
+		int pr=0;
+		LOG_DEBUG(" ");
+		ret =jtag_libusb_bulk_write(wfd, endpoint, (char*)buf, *length, LIBUSB_RW_TIMEOUT, &pr);
+		return(ret==ERROR_OK);
 	}
 
 	int pReadData(int dev, int endpoint, unsigned char *buf, uint32_t *length)
 	{
-		int ret,pr;
-		if (endpoint == 1)
-		{
-			ret=jtag_libusb_bulk_read(wfd, 0x81, (char*)buf, *length, 3000,&pr);
-		}
-		else
-		{
-			ret=jtag_libusb_bulk_read(wfd, 0x82, (char*)buf, *length, 3000,&pr);
-		}
-		if(ret==ERROR_OK)
-			return 1;
-		else
-			return ret;
+		int ret;
+		int pr=0;
+		LOG_DEBUG(" ");
+		endpoint |= 0x80; /* reader bEndpointAddress has 0x80 bit set */
+		ret=jtag_libusb_bulk_read(wfd, endpoint, (char*)buf, *length, LIBUSB_RW_TIMEOUT, &pr);
+		return(ret==ERROR_OK);
 	}
 #endif
 
@@ -363,13 +357,13 @@ unsigned char DMI_OP(
 	Txbuf[6] = (unsigned char)(iData >> 8);
 	Txbuf[7] = (unsigned char)(iData);
 	Txbuf[8] = iOP;
+	LOG_DEBUG(" ");
 // RETRY:
 	len = 9;
 	if (pWriteData(gIndex, 1, Txbuf, &len))
 	{
 		memset(Rxbuf, 0, sizeof(Rxbuf));
 		len = 9;
-		
 		if (pReadData(gIndex, 1, Rxbuf, &len))
 		{
 			
@@ -398,7 +392,7 @@ unsigned char DMI_OP(
 int  wlink_reset(void)
 {
 	unsigned char txbuf[4];
-	unsigned char rxbuf[4];
+	unsigned char rxbuf[6];
 	uint32_t len = 4;
 	txbuf[0] = 0x81;
 	txbuf[1] = 0x0b;
@@ -408,6 +402,7 @@ int  wlink_reset(void)
 	uint32_t oData;
 	unsigned char oOP;
 	unsigned char iAddr;
+	LOG_DEBUG(" ");
 	DMI_OP(0, 0x10, 0x80000001, 2, &oAddr, &oData, &oOP);
 	usleep(1000);
 	oAddr = 0;
@@ -435,11 +430,13 @@ int  wlink_reset(void)
 	DMI_OP(0, 0x11, iAddr, 1, &oAddr, &oData, &oOP);
 	return 0;
 }
+
 int wlink_quitreset(void)
 {
 	unsigned char txbuf[4];
 	unsigned char rxbuf[4];
 	uint32_t len = 4;
+	LOG_DEBUG(" ");
 	txbuf[0] = 0x81;
 	txbuf[1] = 0x0b;
 	txbuf[2] = 0x01;
@@ -450,12 +447,14 @@ int wlink_quitreset(void)
 	usleep(300000);
 	return 0;
 }
+
 int wlink_ready_write(uint32_t address)
 {
 	unsigned char txbuf[24];
 	unsigned char rxbuf[24];
 	uint32_t len = 4;
 	uint32_t chipiaddr1 = chipiaddr + address;
+	LOG_DEBUG(" ");
 	txbuf[0] = 0x81;
 	txbuf[1] = 0x02;
 	txbuf[2] = 0x01;
@@ -533,11 +532,13 @@ static void wlink_ramcodewrite(uint8_t *buffer, int size)
 		pWriteData(0, 2, buffer + 64 * i, &len);
 	}
 }
+
 void wlink_endprogram(void)
 {
 	unsigned char txbuf[4];
 	unsigned char rxbuf[4];
 	uint32_t len = 4;
+	LOG_DEBUG(" ");
 	txbuf[0] = 0x81;
 	txbuf[1] = 0x02;
 	txbuf[2] = 0x01;
@@ -551,6 +552,7 @@ int wlink_fastprogram(uint8_t *buffer)
 {
 	uint32_t len = 64;
 	unsigned char rxbuf[4];
+	LOG_DEBUG(" ");
 	for (int i = 0; i < 64; i++)
 	{
 		pWriteData(0, 2, (buffer + i * 64), &len);
@@ -567,8 +569,6 @@ int wlink_fastprogram(uint8_t *buffer)
 	return ERROR_FAIL;
 }
 
-
-
 unsigned char WriteNonFullPage(uint32_t iaddr,
 							   unsigned char *ibuff,
 							   uint32_t ilen)
@@ -577,6 +577,7 @@ unsigned char WriteNonFullPage(uint32_t iaddr,
 	unsigned char Rxbuf[pagesize];
 	uint32_t len;
 	unsigned char i = 0;
+	LOG_DEBUG(" ");
 	Txbuf[0] = 0x81;
 	Txbuf[1] = 0x0A;
 	Txbuf[2] = 0x05;
@@ -673,6 +674,8 @@ int wlink_verify(uint32_t length, unsigned char *buffer)
 	unsigned char txbuf[12];
 	unsigned char rxbuf[6];
 	uint32_t len = 4;
+
+	LOG_DEBUG(" ");
 
 	txbuf[0] = 0x81;
 	txbuf[1] = 0x0f;
@@ -1013,12 +1016,14 @@ int wlink_verify(uint32_t length, unsigned char *buffer)
 	LOG_INFO("Verify Success");
 	return ERROR_OK;
 }
+
 int wlink_erase(void)
 {
 	int ret;
 	unsigned char txbuf[4];
 	unsigned char rxbuf[4];
 	uint32_t len = 4;
+	LOG_DEBUG(" ");
 	txbuf[0] = 0x81;
 	txbuf[1] = 0x02;
 	txbuf[2] = 0x01;
@@ -1028,11 +1033,13 @@ int wlink_erase(void)
 	ret=pReadData(0, 1, rxbuf, &len);
 	return ret;
 }
+
 void readmcause()
 {
 	unsigned char oAddr;
 	uint32_t oData;
 	unsigned char oOP;
+	LOG_DEBUG(" ");
 	DMI_OP(0, 0x16, 0x00000700, 2, &oAddr, &oData, &oOP);
 	DMI_OP(0, 0x17, 0x220342, 2, &oAddr, &oData, &oOP);
 	DMI_OP(0, 0x16, 0, 1, &oAddr, &oData, &oOP);
@@ -1053,13 +1060,15 @@ int wlink_execute_queue(void)
 int wlink_init(void)
 {	
 	unsigned char txbuf[4];
-	unsigned char rxbuf[6];
+	unsigned char rxbuf[8];
 	txbuf[0] = 0x81;
 	txbuf[1] = 0x0d;
 	txbuf[2] = 0x01;
 	txbuf[3] = 0x01;
 	uint32_t len = 4;
 	int ret = ERROR_OK;
+
+	LOG_DEBUG(" ");
 
 #ifdef _WIN32
 	OSVERSIONINFO version;
@@ -1112,8 +1121,9 @@ int wlink_init(void)
 		LOG_ERROR("claim interface failed");
 		goto error_wlink;
 	}
-
+	wlink_reset();
 #endif
+	txbuf[3] = 0x01;
 	len = 4;
 	pWriteData(0, 1, txbuf, &len);
 	len = 6;
@@ -1123,135 +1133,144 @@ int wlink_init(void)
 		txbuf[3] = 0x02;
 		len = 4;
 		pWriteData(0, 1, txbuf, &len);
-		len = 6;
-		pReadData(0, 1, rxbuf, &len);
-		if (((rxbuf[0] == 0x81) && (rxbuf[1] == 0x55) && (rxbuf[2] == 0x01) && (rxbuf[3] == 0x01)))
-		{
-			LOG_ERROR(" WCH-Link failed to connect with riscvchip");
-			LOG_ERROR(" 1.Make sure the two-line debug interface has been opened. If not, set board to boot mode then use ISP tool to open it");
-			LOG_ERROR(" 2.Please check your physical link connection");
-			return ERROR_FAIL;
-		}
-		switch (rxbuf[3])
-		{
-		case 1:
-		{
-			riscvchip = 0x01;
-			chipiaddr = 0x08000000;
-			pagesize = 128;					
-			txbuf[3] = 0x03;
-			len = 4;
-			pWriteData(0, 1, txbuf, &len);
-			len = 4;
-			if(pReadData(0, 1, rxbuf, &len)){
-				uint32_t addr = 4;
-				unsigned char oAddr = 0;
-				uint32_t oData = 0;
-				unsigned char oOP = 0;
-				unsigned char iAddr = 0;
-				unsigned char Txbuf[52] = {0x13, 0x00, 0x00, 0x00, 0x13, 0x00, 0x00, 0x00, 0x13, 0x00, 0x00, 0x00,
-											0x13, 0x00, 0x00, 0x00, 0x13, 0x00, 0x00, 0x00, 0x13, 0x00, 0x00, 0x00, 0x13, 0x00, 0x00, 0x00, 0x13, 0x00, 0x00, 0x00, 0x13, 0x00, 0x00, 0x00,
-											0x13, 0x00, 0x00, 0x00, 0x13, 0x00, 0x00, 0x00, 0x13, 0x00, 0x00, 0x00,
-											0x73, 0x00, 0x10, 0x00};				
-				DMI_OP(0, 0x20, 0x0002a283, 2, &oAddr, &oData, &oOP);
-				DMI_OP(0, 0x21, 0x00100073, 2, &oAddr, &oData, &oOP);
-				DMI_OP(0, 0x04, 0, 2, &oAddr, &oData, &oOP);
-				DMI_OP(0, 0x17, 0x00271005, 2, &oAddr, &oData, &oOP);
-				DMI_OP(0, 0x17, 0x00221005, 2, &oAddr, &oData, &oOP);
-				DMI_OP(0, 0x04, iAddr, 1, &oAddr, &oData, &oOP);
-				WriteNonFullPage(addr, Txbuf, sizeof(Txbuf));					
-				ret = DMI_OP(0, 0x04, 0x00000020, 2, &oAddr, &oData, &oOP);
-				usleep(1000);
-				DMI_OP(0, 0x17, 0x0023101F, 2, &oAddr, &oData, &oOP);
-				usleep(1000);
-				DMI_OP(0, 0x16, iAddr, 1, &oAddr, &oData, &oOP);
-				usleep(1000);
-				DMI_OP(0, 0x20, 0x000f8067, 2, &oAddr, &oData, &oOP);
-				usleep(1000);
-				DMI_OP(0, 0x21, 0x00100073, 2, &oAddr, &oData, &oOP);
-				usleep(1000);
-				DMI_OP(0, 0x17, 0x00241000, 2, &oAddr, &oData, &oOP);
-				usleep(1000);
-				DMI_OP(0, 0x16, iAddr, 1, &oAddr, &oData, &oOP);
-				usleep(1000);
-				wlink_reset();
+		len = 8;
+		if ( pReadData(0, 1, rxbuf, &len) ) {
+			LOG_DEBUG("rxbuf[] == %02X.%02X.%02X.%02X.%02X.%02X.%02X.%02X", 
+						rxbuf[0],rxbuf[1],rxbuf[2],rxbuf[3],rxbuf[4],rxbuf[5],rxbuf[6],rxbuf[7]);
+			if (((rxbuf[0] == 0x81) && (rxbuf[1] == 0x55) && (rxbuf[2] == 0x01) && (rxbuf[3] == 0x01)))
+			{
+				LOG_ERROR(" WCH-Link failed to connect with riscvchip");
+				LOG_ERROR(" 1.Make sure the two-line debug interface has been opened. If not, set board to boot mode then use ISP tool to open it");
+				LOG_ERROR(" 2.Please check your physical link connection");
+				return ERROR_FAIL;
 			}
-			break;
-		}
-		case 2:
-		{
-			riscvchip = 0x02;
-			chipiaddr = 0x00000000;
-			pagesize = 256;
-			LOG_WARNING(" The debug interface has been opened,there is a risk of code leakage ,ensure that the debug interface has been closed before leaving factory !");
-			break;
-		}
-		case 3:
-		{
-			riscvchip = 0x03;
-			chipiaddr = 0x0000;
-			pagesize = 256;
-			LOG_WARNING(" The debug interface has been opened,there is a risk of code leakage ,ensure that the debug interface has been closed before leaving factory !");
 			switch (rxbuf[3])
 			{
 			case 0:
-			{
-				ramaddr = 0x8000;
-				break;
-			}
 			case 1:
 			{
-				ramaddr = 0x10000;
+				riscvchip = 0x01;
+				chipiaddr = 0x08000000;
+				pagesize = 128;					
+				txbuf[3] = 0x03;
+				len = 4;
+				pWriteData(0, 1, txbuf, &len);
+				len = 4;
+				if(pReadData(0, 1, rxbuf, &len)){
+					uint32_t addr = 4;
+					unsigned char oAddr = 0;
+					uint32_t oData = 0;
+					unsigned char oOP = 0;
+					unsigned char iAddr = 0;
+					unsigned char Txbuf[52] = {0x13, 0x00, 0x00, 0x00, 0x13, 0x00, 0x00, 0x00, 0x13, 0x00, 0x00, 0x00,
+												0x13, 0x00, 0x00, 0x00, 0x13, 0x00, 0x00, 0x00, 0x13, 0x00, 0x00, 0x00, 0x13, 0x00, 0x00, 0x00, 0x13, 0x00, 0x00, 0x00, 0x13, 0x00, 0x00, 0x00,
+												0x13, 0x00, 0x00, 0x00, 0x13, 0x00, 0x00, 0x00, 0x13, 0x00, 0x00, 0x00,
+												0x73, 0x00, 0x10, 0x00};				
+					DMI_OP(0, 0x20, 0x0002a283, 2, &oAddr, &oData, &oOP);
+					DMI_OP(0, 0x21, 0x00100073, 2, &oAddr, &oData, &oOP);
+					DMI_OP(0, 0x04, 0, 2, &oAddr, &oData, &oOP);
+					DMI_OP(0, 0x17, 0x00271005, 2, &oAddr, &oData, &oOP);
+					DMI_OP(0, 0x17, 0x00221005, 2, &oAddr, &oData, &oOP);
+					DMI_OP(0, 0x04, iAddr, 1, &oAddr, &oData, &oOP);
+					WriteNonFullPage(addr, Txbuf, sizeof(Txbuf));					
+					ret = DMI_OP(0, 0x04, 0x00000020, 2, &oAddr, &oData, &oOP);
+					usleep(1000);
+					DMI_OP(0, 0x17, 0x0023101F, 2, &oAddr, &oData, &oOP);
+					usleep(1000);
+					DMI_OP(0, 0x16, iAddr, 1, &oAddr, &oData, &oOP);
+					usleep(1000);
+					DMI_OP(0, 0x20, 0x000f8067, 2, &oAddr, &oData, &oOP);
+					usleep(1000);
+					DMI_OP(0, 0x21, 0x00100073, 2, &oAddr, &oData, &oOP);
+					usleep(1000);
+					DMI_OP(0, 0x17, 0x00241000, 2, &oAddr, &oData, &oOP);
+					usleep(1000);
+					DMI_OP(0, 0x16, iAddr, 1, &oAddr, &oData, &oOP);
+					usleep(1000);
+					wlink_reset();
+				}
+				break;
+			}
+			case 2:
+			{
+				riscvchip = 0x02;
+				chipiaddr = 0x00000000;
+				pagesize = 256;
+				LOG_WARNING(" The debug interface has been opened,there is a risk of code leakage ,ensure that the debug interface has been closed before leaving factory !");
 				break;
 			}
 			case 3:
 			{
-				ramaddr = 0x18000;
+				riscvchip = 0x03;
+				chipiaddr = 0x0000;
+				pagesize = 256;
+				LOG_WARNING(" The debug interface has been opened,there is a risk of code leakage ,ensure that the debug interface has been closed before leaving factory !");
+				switch (rxbuf[3])
+				{
+				case 0:
+				{
+					ramaddr = 0x8000;
+					break;
+				}
+				case 1:
+				{
+					ramaddr = 0x10000;
+					break;
+				}
+				case 3:
+				{
+					ramaddr = 0x18000;
+					break;
+				}
+				default:
+					LOG_ERROR(" unknow CH56X riscvchip");
+					return ERROR_FAIL;
+				}
+
+				break;
+			}
+			case 5:
+			case 6:
+			{
+				riscvchip = 0x06;
+				chipiaddr = 0x08000000;
+				pagesize = 256;
+				txbuf[3] = 0x03;
+				len = 4;
+				pWriteData(0, 1, txbuf, &len);
+				len = 4;
+				pReadData(0, 1, rxbuf, &len);
+				txbuf[0] = 0x81;
+				txbuf[1] = 0x06;
+				txbuf[2] = 0x01;
+				txbuf[3] = 0x01;
+				len = 4;
+				pWriteData(0, 1, txbuf, &len);
+				len = 4;
+				pReadData(0, 1, rxbuf, &len);
+				break;
+			}
+			case 7: // 
+			{
+				riscvchip = 0x02;
+				chipiaddr = 0x00000000;
+				pagesize = 256;
+				LOG_WARNING(" The debug interface has been opened,there is a risk of code leakage ,ensure that the debug interface has been closed before leaving factory !");
 				break;
 			}
 			default:
-				LOG_ERROR(" unknow CH56X riscvchip");
+				LOG_ERROR(" communication fail,please contact [support@mounriver.com]");
 				return ERROR_FAIL;
 			}
-
-			break;
+			#ifdef _WIN32
+				gOpen = TRUE;
+			#endif
 		}
-		case 5:
-		case 6:
+		else
 		{
-			riscvchip = 0x06;
-			chipiaddr = 0x08000000;
-			pagesize = 256;
-			txbuf[3] = 0x03;
-			len = 4;
-			pWriteData(0, 1, txbuf, &len);
-			len = 4;
-			pReadData(0, 1, rxbuf, &len);
-			txbuf[0] = 0x81;
-			txbuf[1] = 0x06;
-			txbuf[2] = 0x01;
-			txbuf[3] = 0x01;
-			len = 4;
-			pWriteData(0, 1, txbuf, &len);
-			len = 4;
-			pReadData(0, 1, rxbuf, &len);
-			break;
-		}
-		case 7: // 
-		{
-			riscvchip = 0x02;
-			chipiaddr = 0x00000000;
-			pagesize = 256;
-			LOG_WARNING(" The debug interface has been opened,there is a risk of code leakage ,ensure that the debug interface has been closed before leaving factory !");
-			break;
-		}
-		default:
-			LOG_ERROR(" communication fail,please contact [support@mounriver.com]");
+			LOG_ERROR(" usb read failed,please contact [support@mounriver.com]");
 			return ERROR_FAIL;
 		}
-		#ifdef _WIN32
-			gOpen = TRUE;
-		#endif
 	}
 	else
 	{
@@ -1269,25 +1288,27 @@ int wlink_init(void)
 
 int wlink_quit(void)
 {
-#ifdef _WIN32
-	if (gOpen)
-	{
-		pCloseDev(gIndex);
-		gOpen = FALSE;
-	}
-	if (hModule)
-	{
-		FreeLibrary(hModule);
-		hModule = 0;
-	}
-#else
-	jtag_libusb_close(wfd);
-#endif
+	LOG_DEBUG(" ");
+	#ifdef _WIN32
+		if (gOpen)
+		{
+			pCloseDev(gIndex);
+			gOpen = FALSE;
+		}
+		if (hModule)
+		{
+			FreeLibrary(hModule);
+			hModule = 0;
+		}
+	#else
+		jtag_libusb_close(wfd);
+	#endif
 	return ERROR_OK;
 }
 
 void wlink_disabledebug(void)
 {
+	LOG_DEBUG(" ");
 	if ((riscvchip == 0x02) || (riscvchip == 0x03))
 	{
 		unsigned char txbuf[4];
@@ -1302,13 +1323,14 @@ void wlink_disabledebug(void)
 		len = 4;
 		pReadData(0, 1, rxbuf, &len);
 	}
-	
 }
+
 int wlink_write(const uint8_t *buffer, uint32_t offset, uint32_t count)
 {
 
 	uint8_t buf_bin[4 * 1024];
 	int binlength = count;
+	LOG_DEBUG(" ");
 	wlink_ready_write(offset);
 	if (binlength <= 4096)
 	{

@@ -166,6 +166,8 @@ int jtag_libusb_open(const uint16_t vids[], const uint16_t pids[],
 	struct libusb_device_handle *libusb_handle = NULL;
 	const char *serial = adapter_get_required_serial();
 
+	LOG_DEBUG(" ");
+
 	if (libusb_init(&jtag_libusb_context) < 0)
 		return ERROR_FAIL;
 
@@ -219,6 +221,8 @@ int jtag_libusb_open(const uint16_t vids[], const uint16_t pids[],
 
 void jtag_libusb_close(struct libusb_device_handle *dev)
 {
+	LOG_DEBUG(" ");
+
 	/* Close device */
 	libusb_close(dev);
 
@@ -243,35 +247,36 @@ int jtag_libusb_control_transfer(struct libusb_device_handle *dev, uint8_t reque
 int jtag_libusb_bulk_write(struct libusb_device_handle *dev, int ep, char *bytes,
 			   int size, int timeout, int *transferred)
 {
-	int ret;
+	int libusb_ret;
 
 	*transferred = 0;
 
-	ret = libusb_bulk_transfer(dev, ep, (unsigned char *)bytes, size,
+	libusb_ret = libusb_bulk_transfer(dev, ep, (unsigned char *)bytes, size,
 				   transferred, timeout);
-	if (ret != LIBUSB_SUCCESS) {
-		LOG_ERROR("libusb_bulk_write error: %s", libusb_error_name(ret));
-		return jtag_libusb_error(ret);
+
+	if (libusb_ret != LIBUSB_SUCCESS) {
+		LOG_ERROR("libusb_bulk_write error: %s", libusb_error_name(libusb_ret));
 	}
 
-	return ERROR_OK;
+	return jtag_libusb_error(libusb_ret);
 }
 
 int jtag_libusb_bulk_read(struct libusb_device_handle *dev, int ep, char *bytes,
 			  int size, int timeout, int *transferred)
 {
-	int ret;
+	int libusb_ret;
 
 	*transferred = 0;
 
-	ret = libusb_bulk_transfer(dev, ep, (unsigned char *)bytes, size,
+	libusb_ret = libusb_bulk_transfer(dev, ep, (unsigned char *)bytes, size,
 				   transferred, timeout);
-	if (ret != LIBUSB_SUCCESS) {
-		LOG_ERROR("libusb_bulk_read error: %s", libusb_error_name(ret));
-		return jtag_libusb_error(ret);
-	}
 
-	return ERROR_OK;
+	if (libusb_ret != LIBUSB_SUCCESS) {
+		LOG_ERROR("libusb_bulk_read error: %s size=%d xfered=%d timeout=%d", 
+							libusb_error_name(libusb_ret), size, *transferred, timeout);
+	}
+	
+	return jtag_libusb_error(libusb_ret);
 }
 
 int jtag_libusb_set_configuration(struct libusb_device_handle *devh,
