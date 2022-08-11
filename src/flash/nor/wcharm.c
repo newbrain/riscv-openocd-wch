@@ -25,89 +25,89 @@
 
 /* ch32x register locations */
 
-#define FLASH_REG_BASE_B0 		0x40022000
-#define FLASH_REG_BASE_B1 		0x40022040
+#define FLASH_REG_BASE_B0 0x40022000
+#define FLASH_REG_BASE_B1 0x40022040
 
-#define ch32_FLASH_ACR     		0x00
-#define ch32_FLASH_KEYR    		0x04
-#define ch32_FLASH_OPTKEYR 		0x08
-#define ch32_FLASH_SR      		0x0C
-#define ch32_FLASH_CR      		0x10
-#define ch32_FLASH_AR      		0x14
-#define ch32_FLASH_OBR     		0x1C
-#define ch32_FLASH_WRPR    		0x20
-#define CH32_FLASH_MODEKEYP 	0x24 //chf103�����Ĵ���
+#define ch32_FLASH_ACR     0x00
+#define ch32_FLASH_KEYR    0x04
+#define ch32_FLASH_OPTKEYR 0x08
+#define ch32_FLASH_SR      0x0C
+#define ch32_FLASH_CR      0x10
+#define ch32_FLASH_AR      0x14
+#define ch32_FLASH_OBR     0x1C
+#define ch32_FLASH_WRPR    0x20
+#define CH32_FLASH_MODEKEYP 0x24 //chf103�����Ĵ���
 
 /* TODO: Check if code using these really should be hard coded to bank 0.
  * There are valid cases, on dual flash devices the protection of the
  * second bank is done on the bank0 reg's. */
-#define ch32_FLASH_ACR_B0     	0x40022000
-#define ch32_FLASH_KEYR_B0    	0x40022004
-#define ch32_FLASH_OPTKEYR_B0 	0x40022008
-#define ch32_FLASH_SR_B0      	0x4002200C
-#define ch32_FLASH_CR_B0      	0x40022010
-#define ch32_FLASH_AR_B0      	0x40022014
-#define ch32_FLASH_OBR_B0     	0x4002201C
-#define ch32_FLASH_WRPR_B0    	0x40022020
+#define ch32_FLASH_ACR_B0     0x40022000
+#define ch32_FLASH_KEYR_B0    0x40022004
+#define ch32_FLASH_OPTKEYR_B0 0x40022008
+#define ch32_FLASH_SR_B0      0x4002200C
+#define ch32_FLASH_CR_B0      0x40022010
+#define ch32_FLASH_AR_B0      0x40022014
+#define ch32_FLASH_OBR_B0     0x4002201C
+#define ch32_FLASH_WRPR_B0    0x40022020
 
 /* option byte location */
 
-#define ch32_OB_RDP				0x1FFFF800
-#define ch32_OB_USER			0x1FFFF802
-#define ch32_OB_DATA0			0x1FFFF804
-#define ch32_OB_DATA1			0x1FFFF806
-#define ch32_OB_WRP0			0x1FFFF808
-#define ch32_OB_WRP1			0x1FFFF80A
-#define ch32_OB_WRP2			0x1FFFF80C
-#define ch32_OB_WRP3			0x1FFFF80E
+#define ch32_OB_RDP		0x1FFFF800
+#define ch32_OB_USER		0x1FFFF802
+#define ch32_OB_DATA0		0x1FFFF804
+#define ch32_OB_DATA1		0x1FFFF806
+#define ch32_OB_WRP0		0x1FFFF808
+#define ch32_OB_WRP1		0x1FFFF80A
+#define ch32_OB_WRP2		0x1FFFF80C
+#define ch32_OB_WRP3		0x1FFFF80E
 
 /* FLASH_CR register bits */
 
-#define FLASH_PG				(1 << 0)
-#define FLASH_PER				(1 << 1)
-#define FLASH_MER				(1 << 2)
-#define FLASH_OPTPG				(1 << 4)
-#define FLASH_OPTER				(1 << 5)
-#define FLASH_STRT				(1 << 6)
-#define FLASH_LOCK				(1 << 7)
-#define FLASH_OPTWRE			(1 << 9)
-#define FLASH_OBL_LAUNCH		(1 << 13)	/* except ch32f1x series */
+#define FLASH_PG			(1 << 0)
+#define FLASH_PER			(1 << 1)
+#define FLASH_MER			(1 << 2)
+#define FLASH_OPTPG			(1 << 4)
+#define FLASH_OPTER			(1 << 5)
+#define FLASH_STRT			(1 << 6)
+#define FLASH_LOCK			(1 << 7)
+#define FLASH_OPTWRE		(1 << 9)
+#define FLASH_OBL_LAUNCH	(1 << 13)	/* except ch32f1x series */
 
 
-#define FLASH_PAGE_PROGRAM		0x00010000	
-#define FLASH_PAGE_ERASE		0x00020000	
-#define FLASH_STD_PAGE_ERASE	0x00000002  
-#define FLASH_STD_PAGE_PRG		0x00000001  
-#define FLASH_BUF_LOAD			0x00040000	
-#define FLASH_BUF_RTS			0x00080000	
+#define FLASH_PAGE_PROGRAM	  0x00010000	
+#define FLASH_PAGE_ERASE		  0x00020000	
+#define FLASH_STD_PAGE_ERASE  0x00000002  
+#define FLASH_STD_PAGE_PRG    0x00000001  
+#define FLASH_BUF_LOAD			  0x00040000	
+#define FLASH_BUF_RTS				  0x00080000	
 
 
 
 /* FLASH_SR register bits */
 
-#define FLASH_BSY				(1 << 0)
-#define FLASH_PGERR				(1 << 2)
-#define FLASH_WRPRTERR			(1 << 4)
-#define FLASH_EOP				(1 << 5)
+#define FLASH_BSY		(1 << 0)
+#define FLASH_PGERR		(1 << 2)
+#define FLASH_WRPRTERR	(1 << 4)
+#define FLASH_EOP		(1 << 5)
 
 /* ch32_FLASH_OBR bit definitions (reading) */
 
-#define OPT_ERROR				0
-#define OPT_READOUT				1
-#define OPT_RDWDGSW				2
-#define OPT_RDRSTSTOP			3
-#define OPT_RDRSTSTDBY			4
-#define OPT_BFB2				5	/* dual flash bank only */
+#define OPT_ERROR		0
+#define OPT_READOUT		1
+#define OPT_RDWDGSW		2
+#define OPT_RDRSTSTOP	3
+#define OPT_RDRSTSTDBY	4
+#define OPT_BFB2		5	/* dual flash bank only */
 
 /* register unlock keys */
 
-#define KEY1					0x45670123
-#define KEY2					0xCDEF89AB
+#define KEY1			0x45670123
+#define KEY2			0xCDEF89AB
 
 /* timeout values */
 
-#define FLASH_WRITE_TIMEOUT 	10
-#define FLASH_ERASE_TIMEOUT 	100
+#define FLASH_WRITE_TIMEOUT 10
+#define FLASH_ERASE_TIMEOUT 100
 
 struct ch32x_options {
 	uint8_t rdp;
@@ -132,35 +132,20 @@ struct ch32x_flash_bank {
 };
 
 uint8_t armchip;
-extern int noloadflag;
 
 extern int wlink_armerase(void);
 extern int wlink_armwrite(const uint8_t *buffer,uint32_t offset, uint32_t count);
-extern int wlink_armcheckprotect(void);
-extern void wlink_sendchip(void);
-
-static inline int ch32x_get_flash_status(struct flash_bank *bank, uint32_t *status);
-static inline int ch32x_get_flash_reg(struct flash_bank *bank, uint32_t reg);
-static int ch32x_wait_status_busy(struct flash_bank *bank, int timeout);
-static int ch32x_check_operation_supported(struct flash_bank *bank);
-static int ch32x_read_options(struct flash_bank *bank);
-static int ch32x_erase_options(struct flash_bank *bank);
-static int ch32x_get_info(struct flash_bank *bank, struct command_invocation* cmd);
-static int ch32x_protect(struct flash_bank *bank, int set, unsigned int first, unsigned int last);
-static int ch32x_erase(struct flash_bank *bank, unsigned int first, unsigned int last);
+extern int noloadflag;
 static int ch32x_mass_erase(struct flash_bank *bank);
 static int ch32x_get_device_id(struct flash_bank *bank, uint32_t *device_id);
 static int ch32x_write_block(struct flash_bank *bank, const uint8_t *buffer,
 		uint32_t address, uint32_t count);
-static int ch32x_write_options(struct flash_bank *bank);
-static int ch32x_protect_check(struct flash_bank *bank);
-static int ch32x_get_flash_size(struct flash_bank *bank, uint16_t *flash_size_in_kb);
-static int ch32x_probe(struct flash_bank *bank);
-static int ch32x_auto_probe(struct flash_bank *bank);
+extern int wlink_armcheckprotect(void);
+extern void wlink_sendchip(uint8_t config);
+	
 
 
-/* 
- * flash bank ch32x <base> <size> 0 0 <target#>
+/* flash bank ch32x <base> <size> 0 0 <target#>
  */
 FLASH_BANK_COMMAND_HANDLER(ch32x_flash_bank_command)
 {
@@ -410,7 +395,7 @@ static int ch32x_protect_check(struct flash_bank *bank)
 	if (retval != ERROR_OK)
 		return retval;
 
-	for (unsigned int i = 0; i < bank->num_prot_blocks; i++)
+	for (uint32_t i = 0; i < bank->num_prot_blocks; i++)
 		bank->prot_blocks[i].is_protected = (protection & (1 << i)) ? 0 : 1;
 
 	return ERROR_OK;
@@ -422,10 +407,10 @@ static int ch32x_erase(struct flash_bank *bank, unsigned int first, unsigned int
 	{
 		if(noloadflag)
 			return ERROR_OK;
-		else			
-			return wlink_armerase();
+					
+		return wlink_armerase();				
 	}	
-	return ERROR_OK;
+ 	return ERROR_FAIL;
 }
 
 static int ch32x_protect(struct flash_bank *bank, int set, unsigned int first, unsigned int last)
@@ -474,8 +459,8 @@ static int ch32x_write(struct flash_bank *bank, const uint8_t *buffer,
 				return ERROR_OK;			
 		int ret=wlink_armwrite(buffer,bank->base + offset,count);				
 		return ret;				
- 	}
-	return ERROR_OK;
+	}
+	return ERROR_FAIL;
 }
 
 static int ch32x_get_device_id(struct flash_bank *bank, uint32_t *device_id)
@@ -486,7 +471,9 @@ static int ch32x_get_device_id(struct flash_bank *bank, uint32_t *device_id)
 	struct target *target = bank->target;
     uint32_t testid=0;
     uint32_t tmp,tmp1,tmp2=0;
-
+	uint8_t user_cfg,config;
+	target_read_u8(target, 0x1ffff802, &user_cfg);
+	config=user_cfg>>6;
 	target_read_u32(target, 0x1ffff884, &testid);			
   	if(((testid>>16)==0x2000)||((testid>>16)==0x1000)||((testid>>16)==0x3000)){
   		target_read_u32(target, 0x1ffff7e8, &tmp);
@@ -496,7 +483,7 @@ static int ch32x_get_device_id(struct flash_bank *bank, uint32_t *device_id)
   			  if(tmp2==0xdc78fe34)
   			    armchip=1;
   				*device_id=0x20000410;
-  				wlink_sendchip();
+  				wlink_sendchip(config);
   				return ERROR_OK;
   		}
   	
@@ -510,7 +497,7 @@ static int ch32x_get_device_id(struct flash_bank *bank, uint32_t *device_id)
   	if(((testid>>20)==0x203)||((testid>>20)==0x205)||((testid>>20)==0x207)||((testid>>20)==0x208)){	
   		 	armchip=2;
   			*device_id=0x20000410;
-  			wlink_sendchip();
+  			wlink_sendchip(config);
   			return ERROR_OK;
 		}
 
@@ -521,10 +508,11 @@ static int ch32x_get_flash_size(struct flash_bank *bank, uint16_t *flash_size_in
 {	
 	struct target *target = bank->target;
     uint32_t temp;
-	*flash_size_in_kb=0;
 	int retval = target_read_u32(target, 0x1ffff7e0, &temp);	
-	if (retval == ERROR_OK)
-		*flash_size_in_kb = temp;
+	*flash_size_in_kb = temp;
+	if (retval != ERROR_OK)
+		return retval;
+
 	return retval;
 }
 
@@ -550,7 +538,7 @@ static int ch32x_probe(struct flash_bank *bank)
 		return retval;
 	
 	LOG_INFO("device id = 0x%08" PRIx32 "", device_id);
-	rid=device_id & 0xfff;
+	rid=device_id & 0xfff ;
 	/* set page size, protection granularity and max flash size depending on family */
 	switch (rid) {
 	case 0x410: /* medium density */
@@ -635,7 +623,7 @@ static int ch32x_probe(struct flash_bank *bank)
 		bank->prot_blocks[31].size = (num_pages - (31 * ch32x_info->ppage_size)) * page_size;
 
 	ch32x_info->probed = 1;
-
+	wlink_armcheckprotect();
 	return ERROR_OK;
 }
 
@@ -655,7 +643,7 @@ COMMAND_HANDLER(ch32x_handle_part_id_command)
 }
 #endif
 
-static int ch32x_get_info(struct flash_bank *bank, struct command_invocation* cmd)
+static int get_ch32x_info(struct flash_bank *bank, struct command_invocation *command)
 {
 	return ERROR_OK;
 }
@@ -1001,7 +989,7 @@ COMMAND_HANDLER(ch32x_handle_mass_erase_command)
 	retval = ch32x_mass_erase(bank);
 	if (retval == ERROR_OK) {
 		/* set all sectors as erased */
-		for (unsigned int i = 0; i < bank->num_sectors; i++)
+		for (uint32_t i = 0; i < bank->num_sectors; i++)
 			bank->sectors[i].is_erased = 1;
 
 		command_print(CMD, "ch32x mass erase complete");
@@ -1082,6 +1070,6 @@ const struct flash_driver wch_arm_flash = {
 	.auto_probe = ch32x_auto_probe,
 	.erase_check = default_flash_blank_check,
 	.protect_check = ch32x_protect_check,
-	.info = ch32x_get_info,
+	.info = get_ch32x_info,
 	.free_driver_priv = default_flash_free_driver_priv,
 };
