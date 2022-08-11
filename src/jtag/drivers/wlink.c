@@ -1024,7 +1024,7 @@ int wlink_erase(void)
 	unsigned char rxbuf[4];
 	uint32_t len = 4;
 	LOG_DEBUG(" ");
-	txbuf[0] = 0x81;
+	txbuf[0] = 0x81;	/**< @NOTE Sharkey: Idealy we want to know this message format */
 	txbuf[1] = 0x02;
 	txbuf[2] = 0x01;
 	txbuf[3] = 0x01;
@@ -1133,7 +1133,7 @@ int wlink_init(void)
 		txbuf[3] = 0x02;
 		len = 4;
 		pWriteData(0, 1, txbuf, &len);
-		len = 8;
+		len = 8; /* @FIXME?? Starkey: This was 6 and would always result in LIBUSB_OVERFLOW error */
 		if ( pReadData(0, 1, rxbuf, &len) ) {
 			LOG_DEBUG("rxbuf[] == %02X.%02X.%02X.%02X.%02X.%02X.%02X.%02X", 
 						rxbuf[0],rxbuf[1],rxbuf[2],rxbuf[3],rxbuf[4],rxbuf[5],rxbuf[6],rxbuf[7]);
@@ -1146,7 +1146,7 @@ int wlink_init(void)
 			}
 			switch (rxbuf[3])
 			{
-			case 0:
+			case 0: /* @FIXME?? Sharkey: CH32V103 returns 0 here ?? */
 			case 1:
 			{
 				riscvchip = 0x01;
